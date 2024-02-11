@@ -2,18 +2,20 @@ const config = require("./config/index.config.js");
 const Cortex = require("ion-cortex");
 const ManagersLoader = require("./loaders/ManagersLoader.js");
 
+// Instance of mongoDB
 const mongoDB = config.dotEnv.MONGO_URI
   ? require("./connect/mongo")({
       uri: config.dotEnv.MONGO_URI,
     })
   : null;
 
-console.log(config.dotEnv.MONGO_URI);
+// Instance of cache
 const cache = require("./cache/cache.dbh")({
-  prefix: "CORTEX",
+  prefix: config.dotEnv.CORTEX_PREFIX,
   url: config.dotEnv.CACHE_REDIS,
 });
 
+// Instance of Cortex
 const cortex = new Cortex({
   prefix: config.dotEnv.CORTEX_PREFIX,
   url: config.dotEnv.CORTEX_REDIS,
@@ -27,6 +29,9 @@ const cortex = new Cortex({
 
 // Add mongoDB to the ManagersLoader
 const managersLoader = new ManagersLoader({ config, cache, cortex, mongoDB });
+
+// Load managers
 const managers = managersLoader.load();
 
+// Start user server
 managers.userServer.run();
