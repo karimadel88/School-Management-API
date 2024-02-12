@@ -38,12 +38,14 @@ module.exports = class ApiHandler {
           /** creating the method matrix */
           let method = "post";
           let fnName = i;
-          console.log(fnName);
+
+          // Here we can add support for other http methods
           if (i.includes("=")) {
             let frags = i.split("=");
             method = frags[0];
             fnName = frags[1];
           }
+
           if (!this.methodMatrix[mk][method]) {
             this.methodMatrix[mk][method] = [];
           }

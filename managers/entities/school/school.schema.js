@@ -1,9 +1,8 @@
 module.exports = {
-  createUser: [
+  create: [
     {
-      model: "username",
+      model: "name",
       required: true,
     },
   ],
-  loginUser: [{}],
 };
