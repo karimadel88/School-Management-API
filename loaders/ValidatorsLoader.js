@@ -25,6 +25,7 @@ module.exports = class ValidatorsLoader {
         models: this.models,
         customValidators: this.customValidators,
       });
+      console.log("sk", sk);
       validators[sk] = {};
       Object.keys(schemes[sk]).forEach((s) => {
         validators[sk][s] = async (data) => {

@@ -32,13 +32,13 @@ module.exports = class ApiHandler {
     // console.log(`# Http API`);
     Object.keys(this.managers).forEach((mk) => {
       if (this.managers[mk][this.prop]) {
-        console.log("managers - mk ", this.managers[mk][this.prop]);
         this.methodMatrix[mk] = {};
         // console.log(`## ${mk}`);
         this.managers[mk][this.prop].forEach((i) => {
           /** creating the method matrix */
           let method = "post";
           let fnName = i;
+          console.log(fnName);
           if (i.includes("=")) {
             let frags = i.split("=");
             method = frags[0];
@@ -113,7 +113,9 @@ module.exports = class ApiHandler {
       result = await targetModule[`${fnName}`](data);
     } catch (err) {
       console.log(`error`, err);
-      result.error = `${fnName} failed to execute`;
+      result.errors.push(`${fnName} failed to execute`);
+      result.ok = false;
+      result.error = err.message;
     }
 
     if (cb) cb(result);
@@ -150,7 +152,7 @@ module.exports = class ApiHandler {
       });
     }
 
-    // console.log(`${moduleName}.${fnName}`);
+    console.log(`${moduleName}.${fnName}`);
 
     let targetStack = this.mwsStack[`${moduleName}.${fnName}`];
 
@@ -171,6 +173,7 @@ module.exports = class ApiHandler {
             res,
           },
         });
+
         if (!result) result = {};
 
         if (result.selfHandleResponse) {
