@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const restfulServices = require("../../../general/rest-controller");
 const UserModel = require("./User.mongoModel");
 const SchoolModel = require("../school/School.mongoModel");
+const Keys = require("./utils");
 
 module.exports = class User {
   constructor({
@@ -20,10 +21,65 @@ module.exports = class User {
     this.mongomodels = mongomodels;
     this.tokenManager = managers.token;
     this.usersCollection = "users";
-    this.httpExposed = ["create", "login"];
+    this.httpExposed = ["create", "login", "createAdmin"];
   }
 
   restServices = restfulServices(UserModel);
+  /**
+   * Create super admin
+   */
+  async createAdmin({ username, email, password, key = Keys.SUPER_ADMIN }) {
+    const payload = { username, email, password, key };
+
+    // Data validation
+    console.log(payload);
+    let result = await this.validators.user.createUser(payload);
+
+    // Validation Error
+    if (result)
+      return {
+        errors: result,
+        code: 400,
+        message: "Validation Error",
+        ok: false,
+      };
+
+    // Check if user already exists
+    const existedUser = await this.restServices.get({ email });
+
+    if (existedUser) {
+      return {
+        errors: ["User already exists"],
+        code: 400,
+        message: "User already exists",
+        ok: false,
+      };
+    }
+
+    // hash password
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(payload.password, salt);
+    payload.password = hash;
+
+    const user = await this.restServices.create(payload);
+
+    // Creation Logic
+    let longToken = this.tokenManager.genLongToken({
+      userId: user.id,
+      userKey: user.key,
+    });
+
+    // Response
+    return {
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        key: user.key,
+      },
+      longToken,
+    };
+  }
 
   /**
    * Create a new user
@@ -54,7 +110,7 @@ module.exports = class User {
 
     // Creation Logic
     let longToken = this.tokenManager.genLongToken({
-      userId: user._id,
+      userId: user.id,
       userKey: user.key,
     });
 
@@ -111,7 +167,7 @@ module.exports = class User {
 
     // Creation Logic
     let longToken = this.tokenManager.genLongToken({
-      userId: user._id,
+      userId: user.id,
       userKey: user.key,
     });
 

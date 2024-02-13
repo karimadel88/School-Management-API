@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 mongoose.Promise = global.Promise;
 
 module.exports = ({ uri }) => {
+  console.log("=> using mongodb connection: " + uri);
   //database connection
   mongoose.connect(uri, {
     useNewUrlParser: true,

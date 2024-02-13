@@ -30,6 +30,20 @@ const restfulServices = (Model) => {
     },
 
     /**
+     * Find a document by id
+     * @param {*} id
+     * @returns
+     */
+    findById: async (id) => {
+      try {
+        return await Model.findById(id);
+      } catch (error) {
+        console.log(`Error from ${Model.modelName} on findById: `, error);
+        throw error;
+      }
+    },
+
+    /**
      * Get all documents
      */
     getAll: async (query) => {

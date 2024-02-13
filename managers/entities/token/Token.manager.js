@@ -78,6 +78,7 @@ module.exports = class TokenManager {
 
     let shortToken = this.genShortToken({
       userId: decoded.userId,
+      id: decoded.id,
       userKey: decoded.userKey,
       sessionId: nanoid(),
       deviceId: md5(__device),
