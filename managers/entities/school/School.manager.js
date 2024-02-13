@@ -56,8 +56,9 @@ module.exports = class School {
       return this.validationErrorResponse(validationResult);
     }
 
+    const currentManager = await this.managerExists(schoolManager);
     // Make sure the school manager exists
-    if (!(await this.managerExists(schoolManager))) {
+    if (!currentManager) {
       return this.errorResponse("School Manager does not exist", 400);
     }
 
@@ -66,7 +67,7 @@ module.exports = class School {
       name,
       address,
       website,
-      schoolManager,
+      schoolManager: currentManager._id,
     });
   }
 
@@ -94,16 +95,30 @@ module.exports = class School {
       return this.validationErrorResponse(validationResult);
     }
 
-    // Make sure the school manager exists
-    if (!(await this.managerExists(schoolManager))) {
-      return this.errorResponse("School Manager does not exist", 400);
+    const school = await this.schoolServices.get({ id });
+
+    if (!school) {
+      return this.errorResponse("School not found", 404);
     }
 
-    // Update the school
-    return await this.schoolServices.update(
-      { id },
-      { name, address, website, schoolManager }
-    );
+    if (schoolManager) {
+      const currentManager = await this.managerExists(schoolManager);
+      if (!currentManager) {
+        return this.errorResponse("School Manager does not exist", 400);
+      }
+
+      school.schoolManager = currentManager._id;
+    }
+
+    await school
+      .set({
+        name,
+        address,
+        website,
+      })
+      .save();
+
+    return school;
   }
 
   /**
@@ -115,8 +130,17 @@ module.exports = class School {
       return this.unauthorizedResponse();
     }
 
+    const school = await this.schoolServices.get({ id });
+
+    // Handle if the school is not found
+    if (!school) {
+      return this.errorResponse("School not found", 404);
+    }
+
     // Delete the school
-    return await this.schoolServices.delete({ id });
+    await school.remove();
+
+    return this.successResponse("School deleted successfully", 200);
   }
 
   /**
@@ -172,7 +196,12 @@ module.exports = class School {
       id,
       key: Keys.MANAGER,
     });
-    return !!schoolManager;
+
+    if (!schoolManager) {
+      return null;
+    }
+
+    return schoolManager;
   }
 
   /**

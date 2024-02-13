@@ -10,6 +10,10 @@ const Classroom = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "schools",
   },
+  id: {
+    type: Number,
+    default: 0,
+  },
   students: [
     {
       type: mongoose.Schema.Types.ObjectId,

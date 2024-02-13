@@ -11,12 +11,10 @@ const School = new mongoose.Schema({
     type: String,
     required: true,
   },
-
-  students: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "users",
+  id: {
+    type: Number,
+    default: 0,
   },
-
   website: {
     type: String,
     required: true,

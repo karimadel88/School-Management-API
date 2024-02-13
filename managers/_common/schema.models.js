@@ -27,10 +27,13 @@ module.exports = {
     type: "string",
     length: { min: 3, max: 300 },
   },
+  school: {
+    path: "school",
+    type: "Number",
+  },
   schoolManager: {
     path: "schoolManager",
     type: "Number",
-    length: { min: 3, max: 300 },
   },
   password: {
     path: "password",

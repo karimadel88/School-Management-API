@@ -1,8 +1,6 @@
-const { has } = require("lodash");
 const bcrypt = require("bcrypt");
 const restfulServices = require("../../../general/rest-controller");
 const UserModel = require("./User.mongoModel");
-const SchoolModel = require("../school/School.mongoModel");
 const Keys = require("./utils");
 
 module.exports = class User {
