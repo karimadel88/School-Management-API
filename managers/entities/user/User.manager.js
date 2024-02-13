@@ -14,6 +14,7 @@ class User {
     this.usersCollection = "users";
     this.httpExposed = ["create", "login", "createAdmin"];
     this.restServices = restfulServices(UserModel);
+    this.managers = managers;
   }
 
   // Create super admin
