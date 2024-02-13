@@ -11,6 +11,9 @@ docker-compose up
 Additionally, ensure you have an `.env` file configured with the following variables:
 - `MONGO_URI`
 - `REDIS_URI`
+- `LONG_TOKEN_SECRET`
+- `SHORT_TOKEN_SECRET`
+- `NACL_SECRET`
 
 ## Database Schemas
 ### User
