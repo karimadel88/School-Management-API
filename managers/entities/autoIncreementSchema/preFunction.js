@@ -14,7 +14,7 @@ const preCreateDoc = (Model) => {
       Counter.findOneAndUpdate(
         { model: modelName },
         { $inc: { seq: 1 } },
-        { new: true }
+        { new: true, upsert: true }
       )
         .then((counter) => {
           doc.id = counter.seq;
