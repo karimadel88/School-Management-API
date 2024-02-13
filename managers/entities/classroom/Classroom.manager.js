@@ -21,7 +21,13 @@ module.exports = class Classroom {
     this.mongomodels = mongomodels;
     this.tokenManager = managers.token;
     this.usersCollection = "classrooms";
-    this.httpExposed = ["create", "get=getAll", "get=get", "delete=delete"];
+    this.httpExposed = [
+      "create",
+      "get=getAll",
+      "get=get",
+      "delete=delete",
+      "put=update",
+    ];
     this.userServices = restfulServices(UserModel);
     this.schoolServices = restfulServices(SchoolModel);
     this.classroomServices = restfulServices(ClassroomModel);
@@ -142,6 +148,38 @@ module.exports = class Classroom {
       message: "Classroom deleted successfully",
       ok: true,
     };
+  }
+
+  /**
+   * Update a classroom
+   */
+  async update({ __longToken, id, name }) {
+    // Check if the user is authorized to create a classroom
+    if (!(await this.canManageClassroomModel(__longToken))) {
+      return this.unauthorizedResponse();
+    }
+
+    const validationResult = await this.validators.classroom.update({
+      id,
+      name,
+    });
+
+    // Handle validation errors
+    if (validationResult) {
+      return this.validationErrorResponse(validationResult);
+    }
+
+    const classroom = await this.classroomServices.get({ id });
+
+    if (!classroom) {
+      return this.errorResponse("Classroom not found", 404);
+    }
+
+    classroom.name = name;
+
+    await classroom.save();
+
+    return classroom;
   }
 
   /**
