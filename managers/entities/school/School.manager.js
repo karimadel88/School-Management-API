@@ -1,19 +1,19 @@
-const mongoose = require("mongoose");
 const restfulServices = require("../../../general/rest-controller");
 const Keys = require("../user/utils");
 const SchoolModel = require("./School.mongoModel");
 const UserModel = require("../user/User.mongoModel");
 
-class School {
+module.exports = class School {
   constructor({
     utils,
     cache,
     config,
     cortex,
-    managers,
     validators,
     mongomodels,
-  } = {}) {
+    managers,
+  }) {
+    // Initialize School class properties
     this.config = config;
     this.cortex = cortex;
     this.validators = validators;
@@ -27,152 +27,113 @@ class School {
       "delete=delete",
       "get=get",
     ];
+    // Initialize restful services for School and User models
+    this.schoolServices = restfulServices(SchoolModel);
+    this.userServices = restfulServices(UserModel);
   }
 
-  schoolServices = restfulServices(SchoolModel);
-  userServices = restfulServices(UserModel);
-
   /**
-   * Create new school
+   * Create a new school
+   * @param {*} param0
+   * @returns
    */
   async create({ __longToken, schoolManager, name, address, website }) {
-    // Check if can create school
+    // Check if the user is authorized to create a school
     if (!(await this.canManageSchoolModel(__longToken))) {
-      return {
-        errors: ["Unauthorized"],
-        code: 401,
-        message: "Unauthorized",
-        ok: false,
-      };
+      return this.unauthorizedResponse();
     }
 
     // Validate payload
-    let result = await this.validators.school.create({
+    const validationResult = await this.validators.school.create({
       name,
       address,
       website,
       schoolManager,
     });
 
-    // Validation Error
-    if (result)
-      return {
-        errors: result,
-        code: 400,
-        message: "Validation Error",
-        ok: false,
-      };
-
-    // Make sure school manager exist
-    if (!(await this.mangerExists(schoolManager))) {
-      return {
-        errors: ["School Manager does not exist"],
-        code: 400,
-        message: "School Manager does not exist",
-        ok: false,
-      };
+    // Handle validation errors
+    if (validationResult) {
+      return this.validationErrorResponse(validationResult);
     }
 
-    const school = await this.schoolServices.create({
+    // Make sure the school manager exists
+    if (!(await this.managerExists(schoolManager))) {
+      return this.errorResponse("School Manager does not exist", 400);
+    }
+
+    // Create the school
+    return await this.schoolServices.create({
       name,
       address,
       website,
       schoolManager,
     });
-
-    return school;
   }
 
   /**
-   * Update school
+   * Update a school
    */
   async update({ __longToken, id, name, address, website, schoolManager }) {
-    // Check if can update school
+    // Check if the user is authorized to update a school
     if (!(await this.canManageSchoolModel(__longToken))) {
-      return {
-        errors: ["Unauthorized"],
-        code: 401,
-        message: "Unauthorized",
-        ok: false,
-      };
+      return this.unauthorizedResponse();
     }
 
     // Validate payload
-    let result = await this.validators.school.update({
+    const validationResult = await this.validators.school.update({
+      id,
       name,
       address,
       website,
       schoolManager,
     });
 
-    // Validation Error
-    if (result)
-      return {
-        errors: result,
-        code: 400,
-        message: "Validation Error",
-        ok: false,
-      };
-
-    // Make sure school manager exist
-    if (!(await this.mangerExists(schoolManager))) {
-      return {
-        errors: ["School Manager does not exist"],
-        code: 400,
-        message: "School Manager does not exist",
-        ok: false,
-      };
+    console.log({ id, name, address, website, schoolManager });
+    // Handle validation errors
+    if (validationResult) {
+      return this.validationErrorResponse(validationResult);
     }
 
-    const school = await this.schoolServices.update(
-      { id: id },
+    // Make sure the school manager exists
+    if (!(await this.managerExists(schoolManager))) {
+      return this.errorResponse("School Manager does not exist", 400);
+    }
+
+    // Update the school
+    return await this.schoolServices.update(
+      { id },
       { name, address, website, schoolManager }
     );
-
-    return school;
   }
 
   /**
-   * Delete school by id
+   * Delete a school by id
    */
   async delete({ __longToken, id }) {
-    // Check if can delete school
+    // Check if the user is authorized to delete a school
     if (!(await this.canManageSchoolModel(__longToken))) {
-      return {
-        errors: ["Unauthorized"],
-        code: 401,
-        message: "Unauthorized",
-        ok: false,
-      };
+      return this.unauthorizedResponse();
     }
 
-    const school = await this.schoolServices.delete({ id: id });
-    return school;
+    // Delete the school
+    return await this.schoolServices.delete({ id });
   }
 
   /**
-   * Get school by id
+   * Get a school by id
    */
   async get({ __longToken, id }) {
-    // Check if can get school
+    // Check if the user is authorized to get a school
     if (!(await this.canManageSchoolModel(__longToken))) {
-      return {
-        errors: ["Unauthorized"],
-        code: 401,
-        message: "Unauthorized",
-        ok: false,
-      };
+      return this.unauthorizedResponse();
     }
 
-    const school = await this.schoolServices.get({ id: id });
+    // Retrieve the school
+    const school = await this.schoolServices.get({ id });
 
+    // Handle if the school is not found
     if (!school) {
-      return {
-        errors: ["School not found"],
-        code: 404,
-        message: "School not found",
-        ok: false,
-      };
+      return this.errorResponse("School not found", 404);
     }
 
     return school;
@@ -180,58 +141,59 @@ class School {
 
   /**
    * Get all schools
-   * @param {*} param0
-   * @returns
    */
   async getAll({ __longToken }) {
-    // Check if can get school
+    // Check if the user is authorized to get all schools
     if (!(await this.canManageSchoolModel(__longToken))) {
-      return {
-        errors: ["Unauthorized"],
-        code: 401,
-        message: "Unauthorized",
-        ok: false,
-      };
+      return this.unauthorizedResponse();
     }
 
-    const schools = await this.schoolServices.getAll();
-    return schools;
+    // Retrieve all schools
+    return await this.schoolServices.getAll();
   }
 
-  /**
-   * Check if user can manage school
-   * @param {*} __longToken
-   * @returns
-   */
+  // Check if the user can manage the school model
   async canManageSchoolModel(__longToken) {
-    console.log(__longToken);
     const { userKey, userId } = __longToken;
+    const user = await this.userServices.get({ id: userId });
 
-    const user = await this.userServices.get({
-      id: userId,
-    });
-
-    if (userKey !== Keys.SUPER_ADMIN) return false;
-
-    if (user && user.key === Keys.SUPER_ADMIN) return true;
-
-    return false;
+    // Check if the user is a super admin
+    return (
+      userKey === Keys.SUPER_ADMIN && user && user.key === Keys.SUPER_ADMIN
+    );
   }
 
   /**
-   * Check manager of school exist
+   * Check if the manager exists
    */
-  async mangerExists(id) {
+  async managerExists(id) {
+    // Retrieve the school manager
     const schoolManager = await this.userServices.get({
-      id: id,
+      id,
       key: Keys.MANAGER,
     });
-
-    if (schoolManager) {
-      return schoolManager;
-    }
-    return null;
+    return !!schoolManager;
   }
-}
 
-module.exports = School;
+  /**
+   * Return unauthorized response
+   * @returns
+   */
+  unauthorizedResponse() {
+    return this.errorResponse("Unauthorized", 401);
+  }
+
+  /**
+   * Return validation error response
+   */
+  validationErrorResponse(errors) {
+    return { errors, code: 400, message: "Validation Error", ok: false };
+  }
+
+  /**
+   * Return error response
+   */
+  errorResponse(message, code) {
+    return { errors: [message], code, message, ok: false };
+  }
+};

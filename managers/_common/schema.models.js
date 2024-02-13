@@ -12,6 +12,26 @@ module.exports = {
     length: { min: 3, max: 20 },
     custom: "username",
   },
+  name: {
+    path: "name",
+    type: "string",
+    length: { min: 3, max: 100 },
+  },
+  address: {
+    path: "address",
+    type: "string",
+    length: { min: 3, max: 300 },
+  },
+  website: {
+    path: "website",
+    type: "string",
+    length: { min: 3, max: 300 },
+  },
+  schoolManager: {
+    path: "schoolManager",
+    type: "Number",
+    length: { min: 3, max: 300 },
+  },
   password: {
     path: "password",
     type: "string",

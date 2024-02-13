@@ -24,4 +24,32 @@ module.exports = {
       required: true,
     },
   ],
+
+  update: [
+    {
+      label: "name",
+      model: "name",
+      type: "String",
+    },
+    {
+      label: "id",
+      model: "id",
+      type: "Number",
+    },
+    {
+      label: "address",
+      model: "address",
+      type: "String",
+    },
+    {
+      label: "website",
+      model: "website",
+      type: "String",
+    },
+    {
+      label: "schoolManager",
+      model: "schoolManager",
+      type: "Number",
+    },
+  ],
 };

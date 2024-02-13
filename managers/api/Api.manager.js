@@ -128,7 +128,7 @@ module.exports = class ApiHandler {
   async mw(req, res, next) {
     let method = req.method.toLowerCase();
     let moduleName = req.params.moduleName;
-    let context = req.params.context;
+    let context = req.params.id;
     let fnName = req.params.fnName;
     let moduleMatrix = this.methodMatrix[moduleName];
 
@@ -171,6 +171,7 @@ module.exports = class ApiHandler {
           fnName,
           data: {
             ...body,
+            id: context,
             ...results,
             res,
           },
