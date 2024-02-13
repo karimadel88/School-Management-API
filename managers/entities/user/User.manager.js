@@ -19,7 +19,11 @@ class User {
 
   // Create super admin
   async createAdmin({ username, email, password, key = Keys.SUPER_ADMIN }) {
-    const payload = { username, email, password, key };
+    const payload = { username, email, password };
+
+    if (key !== Keys.SUPER_ADMIN || key !== Keys.MANAGER) {
+      return this.errorResponse(400, "Invalid key", ["Invalid key"]);
+    }
 
     // Validate user data
     const validationResult = await this.validateUser(payload);
