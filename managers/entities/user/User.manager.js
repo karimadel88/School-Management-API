@@ -3,16 +3,9 @@ const restfulServices = require("../../../general/rest-controller");
 const UserModel = require("./User.mongoModel");
 const Keys = require("./utils");
 
-module.exports = class User {
-  constructor({
-    utils,
-    cache,
-    config,
-    cortex,
-    managers,
-    validators,
-    mongomodels,
-  } = {}) {
+class User {
+  constructor({ config, cortex, validators, mongomodels, managers } = {}) {
+    // Initialize class properties with provided dependencies
     this.config = config;
     this.cortex = cortex;
     this.validators = validators;
@@ -20,166 +13,148 @@ module.exports = class User {
     this.tokenManager = managers.token;
     this.usersCollection = "users";
     this.httpExposed = ["create", "login", "createAdmin"];
+    this.restServices = restfulServices(UserModel);
   }
 
-  restServices = restfulServices(UserModel);
-  /**
-   * Create super admin
-   */
+  // Create super admin
   async createAdmin({ username, email, password, key = Keys.SUPER_ADMIN }) {
     const payload = { username, email, password, key };
 
-    // Data validation
-    console.log(payload);
-    let result = await this.validators.user.createUser(payload);
+    // Validate user data
+    const validationResult = await this.validateUser(payload);
 
-    // Validation Error
-    if (result)
-      return {
-        errors: result,
-        code: 400,
-        message: "Validation Error",
-        ok: false,
-      };
-
-    // Check if user already exists
-    const existedUser = await this.restServices.get({ email });
-
-    if (existedUser) {
-      return {
-        errors: ["User already exists"],
-        code: 400,
-        message: "User already exists",
-        ok: false,
-      };
+    if (validationResult) {
+      return this.errorResponse(400, "Validation Error", validationResult);
     }
 
-    // hash password
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(payload.password, salt);
-    payload.password = hash;
+    // Check if the user already exists
+    if (await this.userExists(email)) {
+      return this.errorResponse(400, "User already exists", [
+        "User already exists",
+      ]);
+    }
 
+    // Hash password before storing
+    const hashedPassword = await this.hashPassword(password);
+    payload.password = hashedPassword;
+
+    // Create user
     const user = await this.restServices.create(payload);
 
-    // Creation Logic
-    let longToken = this.tokenManager.genLongToken({
+    // Generate long token for user session
+    const longToken = this.tokenManager.genLongToken({
       userId: user.id,
       userKey: user.key,
     });
 
-    // Response
-    return {
-      user: {
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        key: user.key,
-      },
-      longToken,
-    };
+    return this.successResponse(user, longToken);
   }
 
-  /**
-   * Create a new user
-   */
-  async create({ username, email, password }) {
+  // Create a new user
+  async create({ username, email, password, key }) {
     const payload = { username, email, password };
 
-    // Data validation
-    let result = await this.validators.user.createUser(payload);
+    // Validate user data
+    const validationResult = await this.validateUser(payload);
 
-    // Validation Error
-    if (result)
-      return {
-        errors: result,
-        code: 400,
-        message: "Validation Error",
-        ok: false,
-      };
+    if (validationResult) {
+      return this.errorResponse(400, "Validation Error", validationResult);
+    }
 
-    // hash password
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(payload.password, salt);
-    payload.password = hash;
+    // Check if the user already exists
+    if (await this.userExists(email)) {
+      return this.errorResponse(400, "User already exists", [
+        "User already exists",
+      ]);
+    }
 
+    // Hash password before storing
+    const hashedPassword = await this.hashPassword(password);
+    payload.password = hashedPassword;
+
+    // Create user
     const user = await this.restServices.create(payload);
 
-    console.log(user);
-
-    // Creation Logic
-    let longToken = this.tokenManager.genLongToken({
+    // Generate long token for user session
+    const longToken = this.tokenManager.genLongToken({
       userId: user.id,
       userKey: user.key,
     });
 
-    // Response
-    return {
-      user: {
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        key: user.key,
-      },
-      longToken,
-    };
+    return this.successResponse(user, longToken);
   }
 
-  /**
-   * Login
-   */
+  // User login
   async login({ email, password }) {
-    const payload = { email, password };
+    const validationResult = await this.validateLogin({ email, password });
 
-    // Data validation
-    let result = await this.validators.user.loginUser(payload);
+    if (validationResult) {
+      return this.errorResponse(400, "Validation Error", validationResult);
+    }
 
-    // Validation Error
-    if (result)
-      return {
-        errors: result,
-        code: 400,
-        message: "Validation Error",
-        ok: false,
-      };
-
-    // Find user
+    // Find user by email
     const user = await this.restServices.get({ email });
 
     if (!user) {
-      return {
-        code: 404,
-        message: "User not found",
-        ok: false,
-      };
+      return this.errorResponse(404, "User not found");
     }
 
-    // Compare password
-    const isMatch = await bcrypt.compare(payload.password, user.password);
+    // Compare provided password with stored hashed password
+    const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
-      return {
-        code: 400,
-        message: "Invalid credentials",
-        ok: false,
-      };
+      return this.errorResponse(400, "Invalid credentials");
     }
 
-    // Creation Logic
-    let longToken = this.tokenManager.genLongToken({
+    // Generate long token for user session
+    const longToken = this.tokenManager.genLongToken({
       userId: user.id,
       userKey: user.key,
     });
 
-    // Response
+    return this.successResponse(user, longToken);
+  }
+
+  // Validate user data
+  async validateUser(payload) {
+    return await this.validators.user.createUser(payload);
+  }
+
+  // Validate login data
+  async validateLogin(payload) {
+    return await this.validators.user.loginUser(payload);
+  }
+
+  // Check if user already exists
+  async userExists(email) {
+    const user = await this.restServices.get({ email });
+    return user !== null;
+  }
+
+  // Hash password using bcrypt
+  async hashPassword(password) {
+    const salt = await bcrypt.genSalt(10);
+    return await bcrypt.hash(password, salt);
+  }
+
+  // Prepare success response object
+  successResponse(user, longToken) {
     return {
       user: {
         _id: user._id,
         username: user.username,
         email: user.email,
         key: user.key,
+        id: user.id,
       },
       longToken,
     };
-
-    // Continue with the rest of the code...
   }
-};
+
+  // Prepare error response object
+  errorResponse(code, message, errors = []) {
+    return { code, message, ok: false, errors };
+  }
+}
+
+module.exports = User;
