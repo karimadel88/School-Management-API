@@ -33,7 +33,7 @@ module.exports = class UserServer {
     });
 
     app.get("/", (req, res) => {
-      res.send("Hello World!");
+      res.send("Starting point!!");
     });
 
     /** a single middleware to handle all */
